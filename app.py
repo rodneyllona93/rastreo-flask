@@ -6,12 +6,12 @@ import random
 app = Flask(__name__)
 ubicaciones = {}
 
-# Colores disponibles para los marcadores (uno por vendedor)
+# Lista de colores de marcadores disponibles
 COLORES = [
-    "red", "blue", "green", "purple", "orange", "darkred", "lightblue",
-    "lightgreen", "cadetblue", "darkblue", "black", "pink", "gray"
+    "red", "blue", "green", "purple", "orange", "darkred",
+    "lightblue", "lightgreen", "cadetblue", "darkblue", "black", "pink", "gray"
 ]
-color_asignado = {}  # Guarda el color de cada vendedor para mantenerlo igual
+color_asignado = {}  # Guarda el color de cada vendedor para mantener consistencia
 
 @app.route('/')
 def index():
@@ -25,7 +25,7 @@ def actualizar_ubicacion():
     lng = data.get('lng')
 
     if lat and lng:
-        # Asigna color único si no tenía antes
+        # Asignar color si no tenía antes
         if nombre not in color_asignado:
             color_asignado[nombre] = random.choice(COLORES)
 
@@ -40,36 +40,39 @@ def mapa():
     if not ubicaciones:
         return "<h3>No hay ubicaciones registradas aún</h3>"
 
-    # Toma la primera ubicación para centrar el mapa
+    # Centra el mapa en la primera ubicación
     primera = next(iter(ubicaciones.values()))
     mapa = folium.Map(location=[primera['lat'], primera['lng']], zoom_start=13)
 
-    # Agrega los marcadores
+    # Agregar marcadores con nombres y colores únicos
     for nombre, pos in ubicaciones.items():
         color = color_asignado.get(nombre, "blue")
 
-        # Marcador con icono y popup
-        folium.Marker(
-            [pos['lat'], pos['lng']],
+        # Marcador principal
+        folium.CircleMarker(
+            location=[pos['lat'], pos['lng']],
+            radius=8,
+            color=color,
+            fill=True,
+            fill_color=color,
+            fill_opacity=0.9,
             popup=f"<b>{nombre}</b>",
-            tooltip=f"{nombre}",
-            icon=folium.Icon(color=color, icon='car', prefix='fa')  # 🚗 icono de vehículo
+            tooltip=f"{nombre}"
         ).add_to(mapa)
 
-        # Nombre flotante sobre el punto
+        # Nombre flotante encima del marcador
         folium.map.Marker(
-            [pos['lat'], pos['lng']],
+            [pos['lat'] + 0.0003, pos['lng']],  # un poco más arriba para que no tape el punto
             icon=DivIcon(
                 icon_size=(150,36),
                 icon_anchor=(0,0),
-                html=f'<div style="font-size: 12px; color: {color}; background: white; border-radius: 4px; padding: 2px;">{nombre}</div>',
+                html=f'<div style="font-size: 13px; font-weight: bold; color:{color}; background-color:white; padding:2px; border-radius:4px;">{nombre}</div>'
             )
         ).add_to(mapa)
 
-    # HTML del mapa
     mapa_html = mapa._repr_html_()
 
-    # Script JS: guarda vista y refresca cada 5 segundos
+    # JavaScript para refrescar el mapa cada 5 segundos
     js_script = """
     <script>
       const prevLat = localStorage.getItem('mapLat');
@@ -91,6 +94,7 @@ def mapa():
     """
 
     return mapa_html + js_script
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
