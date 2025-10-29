@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>IP Location</title>
+    <link href="{{ url_for('static', filename='style_ip.css') }}" rel="stylesheet">
+    <script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
+</head>
+<body>
+    <h1>Bienvenido a la app de ubicación IP</h1>
+
+    <form method="post">
+        <input type="text" name="direccion" placeholder="Ingrese una dirección" required>
+        <button type="submit">Mostrar en mapa</button>
+    </form>
+
+    {% if mapa_html %}
+        <div style="width: 100%; height: 500px; margin-top: 20px;">
+            {{ mapa_html|safe }}
+        </div>
+    {% endif %}
+</body>
+</html>
