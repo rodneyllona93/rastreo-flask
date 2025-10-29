@@ -1,9 +1,17 @@
 from flask import Flask, render_template, request, jsonify
 import folium
-from folium.features import DivIcon  # 👈 para mostrar el nombre sobre el mapa
+from folium.features import DivIcon
+import random
 
 app = Flask(__name__)
 ubicaciones = {}
+
+# Colores disponibles para los marcadores (uno por vendedor)
+COLORES = [
+    "red", "blue", "green", "purple", "orange", "darkred", "lightblue",
+    "lightgreen", "cadetblue", "darkblue", "black", "pink", "gray"
+]
+color_asignado = {}  # Guarda el color de cada vendedor para mantenerlo igual
 
 @app.route('/')
 def index():
@@ -17,6 +25,10 @@ def actualizar_ubicacion():
     lng = data.get('lng')
 
     if lat and lng:
+        # Asigna color único si no tenía antes
+        if nombre not in color_asignado:
+            color_asignado[nombre] = random.choice(COLORES)
+
         ubicaciones[nombre] = {'lat': lat, 'lng': lng}
         print(f"📍 Ubicación recibida: {nombre} -> ({lat}, {lng})")
         return jsonify({'status': 'ok'})
@@ -32,14 +44,16 @@ def mapa():
     primera = next(iter(ubicaciones.values()))
     mapa = folium.Map(location=[primera['lat'], primera['lng']], zoom_start=13)
 
-    # Agrega los marcadores con nombres visibles
+    # Agrega los marcadores
     for nombre, pos in ubicaciones.items():
-        # Marcador con popup y tooltip
+        color = color_asignado.get(nombre, "blue")
+
+        # Marcador con icono y popup
         folium.Marker(
             [pos['lat'], pos['lng']],
             popup=f"<b>{nombre}</b>",
             tooltip=f"{nombre}",
-            icon=folium.Icon(color='blue', icon='user')
+            icon=folium.Icon(color=color, icon='car', prefix='fa')  # 🚗 icono de vehículo
         ).add_to(mapa)
 
         # Nombre flotante sobre el punto
@@ -48,14 +62,14 @@ def mapa():
             icon=DivIcon(
                 icon_size=(150,36),
                 icon_anchor=(0,0),
-                html=f'<div style="font-size: 12px; color: black; background: white; border-radius: 4px; padding: 2px;">{nombre}</div>',
+                html=f'<div style="font-size: 12px; color: {color}; background: white; border-radius: 4px; padding: 2px;">{nombre}</div>',
             )
         ).add_to(mapa)
 
     # HTML del mapa
     mapa_html = mapa._repr_html_()
 
-    # Script JS para recordar posición del mapa y refrescar cada 5 segundos
+    # Script JS: guarda vista y refresca cada 5 segundos
     js_script = """
     <script>
       const prevLat = localStorage.getItem('mapLat');
@@ -71,11 +85,11 @@ def mapa():
           localStorage.setItem('mapLng', center.lng);
           localStorage.setItem('mapZoom', window.map.getZoom());
         });
-        // Refresca el mapa cada 5 segundos
         setTimeout(() => { location.reload(); }, 5000);
       }, 1000);
     </script>
     """
+
     return mapa_html + js_script
 
 if __name__ == '__main__':
