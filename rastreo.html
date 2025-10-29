@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Rastreo Vehicular</title>
+</head>
+<body>
+  <h2>Rastreo en tiempo real</h2>
+  <p id="estado">Esperando ubicación...</p>
+
+  <script>
+    const nombre = prompt("Ingrese su nombre o ID del vehículo:");
+
+    function enviarUbicacion(lat, lng) {
+      fetch("/actualizar_ubicacion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre, lat, lng })
+      })
+      .then(res => res.json())
+      .then(data => console.log("✅ Ubicación enviada:", data))
+      .catch(err => console.error("❌ Error al enviar:", err));
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.watchPosition(pos => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        document.getElementById("estado").innerText = `Ubicación actual: ${lat}, ${lng}`;
+        enviarUbicacion(lat, lng);
+      }, err => {
+  let msg = "⚠️ Error al obtener la ubicación.";
+  if (err.code === 1) msg = "🚫 Permiso de ubicación denegado.";
+  if (err.code === 2) msg = "📶 No se pudo determinar la posición (sin señal GPS o red).";
+  if (err.code === 3) msg = "⏰ Tiempo de espera agotado.";
+  document.getElementById("estado").innerText = msg;
+  console.error("Detalles del error:", err);
+
+      }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
+    } else {
+      document.getElementById("estado").innerText = "Tu navegador no soporta geolocalización.";
+    }
+  </script>
+</body>
+</html>
